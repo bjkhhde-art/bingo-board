@@ -47,7 +47,7 @@ document.getElementById("nextAnniversaryCountdown").textContent =
   daysUntilNext === 0 ? "Heute! 🎉" : daysUntilNext + " Tage";
 
 document.getElementById("nextAnniversaryDate").textContent =
-  formatDate(nextAnniv.toISOString().slice(0, 10));
+  nextAnniv.toLocaleDateString("de-DE");
 
 document.querySelectorAll(".flip-card").forEach(card => {
   card.addEventListener("click", () => {

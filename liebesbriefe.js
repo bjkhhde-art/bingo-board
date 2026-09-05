@@ -112,7 +112,7 @@ function setFlapProgress(progress) {
 
   envelopeFlap.style.transform = `rotateX(${-120 * flapProgress}deg)`;
 
-  const paperY = 20 - flapProgress * 230;
+  const paperY = 20 - flapProgress * 140;
   letterPaper.style.transform = `translateY(${paperY}px)`;
   letterPaper.style.opacity = String(Math.min(1, flapProgress * 1.6));
 }
@@ -120,6 +120,7 @@ function setFlapProgress(progress) {
 function openFlapFully() {
   envelopeFlap.classList.add("opened");
   setFlapProgress(1);
+  letterPaper.classList.add("revealed");
   flapOpened = true;
 
   if (currentNoteId !== null) {
@@ -130,6 +131,7 @@ function openFlapFully() {
 
 function closeFlapFully() {
   envelopeFlap.classList.remove("opened");
+  letterPaper.classList.remove("revealed");
   setFlapProgress(0);
   flapOpened = false;
 }
@@ -140,6 +142,7 @@ function openLetter(note) {
   letterSignatureEl.textContent = `– ${note.author}`;
 
   envelopeFlap.classList.remove("opened", "settling", "dragging");
+  letterPaper.classList.remove("revealed");
   letterPaper.classList.add("dragging");
   setFlapProgress(0);
   void letterPaper.offsetWidth;
