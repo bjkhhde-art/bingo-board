@@ -20,6 +20,11 @@ const letterPaper = document.getElementById("letterPaper");
 const letterMessageEl = document.getElementById("letterMessage");
 const letterSignatureEl = document.getElementById("letterSignature");
 
+const pushBanner = document.getElementById("pushBanner");
+const pushPersonButtons = document.querySelectorAll(".push-person-btn");
+
+const VAPID_PUBLIC_KEY = "BK5VB6dUwUk95sMOfJ2lz7j29h_piCc8UuvP13_8jMhDaVH_X3qrCtICq6WrYtOhiJnjUK-s-mvYhaWLL71M5j4";
+
 const OPENED_STORAGE_KEY = "love_notes_opened";
 const DRAG_RANGE = 150;
 const OPEN_THRESHOLD = 0.55;
@@ -217,6 +222,105 @@ function timeAgo(dateString) {
   return formatDate(dateString);
 }
 
+/* ---------- push notifications ---------- */
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+}
+
+function initPushBanner() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return;
+  }
+
+  if (localStorage.getItem("pw_push_enabled") === "true") {
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    pushBanner.innerHTML = `<p class="push-banner-text">Push-Benachrichtigungen sind für diese Seite blockiert. Du kannst sie in den Browser-Einstellungen wieder erlauben.</p>`;
+    pushBanner.classList.remove("hidden");
+    return;
+  }
+
+  pushBanner.classList.remove("hidden");
+}
+
+async function enablePush(person) {
+  localStorage.setItem("pw_person", person);
+
+  try {
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      showToast("Ohne Erlaubnis kann ich keine Benachrichtigungen schicken.", "error");
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.register("sw.js");
+    await navigator.serviceWorker.ready;
+
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    const keys = subscription.toJSON().keys;
+
+    const { error } = await supabaseClient
+      .from("push_subscriptions")
+      .upsert(
+        {
+          person,
+          endpoint: subscription.endpoint,
+          p256dh: keys.p256dh,
+          auth: keys.auth
+        },
+        { onConflict: "endpoint" }
+      );
+
+    if (error) throw error;
+
+    localStorage.setItem("pw_push_enabled", "true");
+    pushBanner.classList.add("hidden");
+    showToast("Push-Benachrichtigungen aktiviert 🔔", "success");
+  } catch (error) {
+    console.error("Fehler beim Aktivieren von Push:", error);
+    showToast("Push-Benachrichtigungen konnten nicht aktiviert werden.", "error");
+  }
+}
+
+async function notifyNewLetter(author) {
+  try {
+    const { error } = await supabaseClient.functions.invoke("notify-new-letter", {
+      body: { author }
+    });
+
+    if (error) {
+      console.error("Push-Benachrichtigung fehlgeschlagen:", error);
+    }
+  } catch (error) {
+    console.error("Push-Benachrichtigung fehlgeschlagen:", error);
+  }
+}
+
+pushPersonButtons.forEach(button => {
+  button.addEventListener("click", () => enablePush(button.dataset.person));
+});
+
 async function sendNote() {
   const message = noteMessageInput.value.trim();
 
@@ -242,11 +346,14 @@ async function sendNote() {
     return;
   }
 
+  const sentAuthor = noteAuthorInput.value;
+
   noteMessageInput.value = "";
   noteModal.classList.add("hidden");
   showToast("Nachricht gesendet 💌", "success");
   celebrate(6);
   await loadNotes();
+  notifyNewLetter(sentAuthor);
 }
 
 async function deleteNote(id) {
@@ -299,6 +406,7 @@ document.addEventListener("keydown", event => {
 });
 
 loadNotes();
+initPushBanner();
 
 supabaseClient
   .channel("love_notes_changes")
