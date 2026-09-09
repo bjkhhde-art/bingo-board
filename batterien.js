@@ -105,7 +105,15 @@ async function saveLevel(person, level) {
   if (error) {
     console.error("Fehler beim Speichern:", error);
     showToast("Akku-Stand konnte nicht gespeichert werden.", "error");
+    return;
   }
+
+  sendAppNotification(supabaseClient, {
+    title: "Kuschelbatterie aktualisiert 🔋",
+    body: `${person} hat den Akku auf ${level}% gesetzt.`,
+    excludePerson: normalizePerson(person),
+    url: "batterien.html"
+  });
 }
 
 async function loadLevels() {

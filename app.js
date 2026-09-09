@@ -191,6 +191,14 @@ async function saveItem() {
     }
 
     showToast("Neues Feld hinzugefügt ✨", "success");
+
+    const person = normalizePerson(authorInput.value);
+    sendAppNotification(supabaseClient, {
+      title: "Neue Couple Quest 🎯",
+      body: `${authorInput.value} hat "${title}" hinzugefügt.`,
+      excludePerson: person,
+      url: "couple-quest.html"
+    });
   }
 
   addModal.classList.add("hidden");

@@ -69,6 +69,22 @@
 
   </main>
 
+  <div id="pushModal" class="modal hidden">
+    <div class="modal-box">
+      <h2>🔔 Push-Benachrichtigungen</h2>
+      <p class="push-modal-text">Bekommt eine Benachrichtigung, wenn der andere einen Liebesbrief schreibt, eine neue Couple Quest hinzufügt oder den Kuschel-Akku ändert – auch wenn die App gerade nicht offen ist.</p>
+
+      <div class="push-person-choice">
+        <button class="btn push-person-btn" data-person="Isi">Ich bin Isi</button>
+        <button class="btn btn-secondary push-person-btn" data-person="Benji">Ich bin Benji</button>
+      </div>
+
+      <div class="modal-buttons">
+        <button id="dismissPushModal" class="btn btn-ghost btn-block">Später</button>
+      </div>
+    </div>
+  </div>
+
   <nav class="app-nav" aria-label="Hauptnavigation">
     <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
     <a href="couple-quest.html" class="nav-item"><span class="nav-icon">🎯</span><span class="nav-label">Quest</span></a>
@@ -79,10 +95,8 @@
     <a href="liebesbriefe.html" class="nav-item"><span class="nav-icon">💌</span><span class="nav-label">Briefe</span></a>
   </nav>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="shared.js"></script>
-  <script>
-    document.getElementById("heroDays").textContent =
-      daysBetween(MILESTONES.anniversary.date) + " 🎉";
-  </script>
+  <script src="index.js"></script>
 </body>
 </html>

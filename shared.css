@@ -510,6 +510,22 @@ textarea:focus {
   margin: 10px 0 0;
 }
 
+.push-modal-text {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 4px;
+}
+
+.push-person-choice {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
 .modal-buttons {
   display: flex;
   gap: 10px;

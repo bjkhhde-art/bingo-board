@@ -37,6 +37,84 @@ window.timeAgo = function (dateString) {
   return formatDate(dateString);
 };
 
+/* ---------- push notifications ---------- */
+
+window.VAPID_PUBLIC_KEY = "BK5VB6dUwUk95sMOfJ2lz7j29h_piCc8UuvP13_8jMhDaVH_X3qrCtICq6WrYtOhiJnjUK-s-mvYhaWLL71M5j4";
+
+window.normalizePerson = function (name) {
+  return (name || "").startsWith("Isi") ? "Isi" : "Benji";
+};
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+}
+
+window.subscribeToPush = async function (supabaseClient, person) {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    throw new Error("Push wird von diesem Browser nicht unterstützt.");
+  }
+
+  const permission = await Notification.requestPermission();
+
+  if (permission !== "granted") {
+    throw new Error("Berechtigung nicht erteilt.");
+  }
+
+  const registration = await navigator.serviceWorker.register("sw.js");
+  await navigator.serviceWorker.ready;
+
+  let subscription = await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY)
+    });
+  }
+
+  const keys = subscription.toJSON().keys;
+
+  const { error } = await supabaseClient
+    .from("push_subscriptions")
+    .upsert(
+      {
+        person,
+        endpoint: subscription.endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth
+      },
+      { onConflict: "endpoint" }
+    );
+
+  if (error) throw error;
+
+  localStorage.setItem("pw_push_enabled", "true");
+  localStorage.setItem("pw_person", person);
+};
+
+window.sendAppNotification = async function (supabaseClient, { title, body, excludePerson, url }) {
+  try {
+    const { error } = await supabaseClient.functions.invoke("notify-new-letter", {
+      body: { title, body, excludePerson, url }
+    });
+
+    if (error) {
+      console.error("Push-Benachrichtigung fehlgeschlagen:", error);
+    }
+  } catch (error) {
+    console.error("Push-Benachrichtigung fehlgeschlagen:", error);
+  }
+};
+
 (function () {
   function ensureLayer(id, className) {
     let el = document.getElementById(id);
